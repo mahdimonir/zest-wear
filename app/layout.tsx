@@ -24,7 +24,7 @@ export default function RootLayout({
           <UserSync />
           <Navbar />
           {children}
-          <Toaster position="top-right" richColors />
+          <Toaster position="top-right" richColors offset="80px" />
         </body>
       </html>
     </ClerkProvider>

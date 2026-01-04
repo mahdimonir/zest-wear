@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { useCartStore } from '@/lib/cart-store';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ export default function ProductCard({ product }: { product: Product }) {
     product.color.length > 0 ? product.color[0] : undefined
   );
   
+  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
 
   const handleAddToCart = () => {
@@ -50,6 +52,10 @@ export default function ProductCard({ product }: { product: Product }) {
     });
 
     toast.success(`${product.name} added to cart!`);
+    
+    setTimeout(() => {
+      router.push('/cart');
+    }, 500);
   };
 
   return (

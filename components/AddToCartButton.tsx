@@ -48,7 +48,10 @@ export default function AddToCartButton({ product }: { product: Product }) {
     });
 
     toast.success(`${product.name} added to cart!`);
-    router.push('/cart');
+    
+    setTimeout(() => {
+      router.push('/cart');
+    }, 500);
   };
 
   return (

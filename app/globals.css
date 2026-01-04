@@ -69,4 +69,21 @@ body {
     background: var(--blue-500);
     transform: scale(1.02);
   }
+
+  .btn-secondary {
+    background: white;
+    color: var(--green-500);
+    border: 1px solid var(--green-500);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover {
+    background: #ECFDF5; /* green-50 equivalent */
+    border-color: var(--green-500);
+    color: var(--green-500);
+    transform: scale(1.02);
+  }
 }

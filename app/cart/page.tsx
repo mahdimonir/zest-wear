@@ -216,7 +216,7 @@ export default function CartPage() {
 
               <Link
                 href="/"
-                className="w-full text-center block font-medium text-blue-600 hover:text-blue-700 transition-colors"
+                className="btn-secondary w-full text-center block"
               >
                 Continue Shopping
               </Link>

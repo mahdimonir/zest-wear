@@ -145,33 +145,51 @@ export default async function MyOrderDetailsPage(props: {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Order Items</h2>
           <div className="space-y-4">
+          <div className="divide-y divide-gray-100">
             {order.items.map((item) => (
-              <div key={item.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                <div className="relative w-20 h-20 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
+              <div key={item.id} className="flex gap-6 py-6 last:pb-0 first:pt-0">
+                <div className="relative w-24 h-24 flex-shrink-0 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
                   <Image
                     src={item.product.imageUrl}
                     alt={item.product.name}
                     fill
-                    className="object-cover"
+                    className="object-cover hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{item.product.name}</h3>
-                  <div className="flex gap-2 text-sm text-gray-600 mt-1">
-                    {item.selectedSize && <span>Size: {item.selectedSize}</span>}
-                    {item.selectedColor && <span>Color: {item.selectedColor}</span>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-900 text-lg mb-1 truncate pr-4">
+                        {item.product.name}
+                      </h3>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {item.selectedSize && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 text-xs font-medium text-gray-600 border border-gray-100">
+                            Size: {item.selectedSize}
+                          </span>
+                        )}
+                        {item.selectedColor && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-50 text-xs font-medium text-gray-600 border border-gray-100">
+                            Color: {item.selectedColor}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="font-bold text-gray-900 text-lg">
+                      ৳{(item.price * item.quantity).toFixed(2)}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    ৳{item.price.toFixed(2)} × {item.quantity}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-gray-900">
-                    ৳{(item.price * item.quantity).toFixed(2)}
-                  </p>
+                  
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="text-sm text-gray-500">
+                      Qty: <span className="font-medium text-gray-900">{item.quantity}</span> × ৳{item.price.toFixed(2)}
+                    </p>
+                    {/* Future: Add 'Buy Again' or 'Review' buttons here */}
+                  </div>
                 </div>
               </div>
             ))}
+          </div>
           </div>
 
           {/* Order Total */}
