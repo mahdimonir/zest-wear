@@ -1,10 +1,48 @@
 'use client';
 
 import { useCartStore } from '@/lib/cart-store';
-import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
+import { useUser } from '@clerk/nextjs';
+import { Minus, Plus, ShoppingBag, Trash2, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { toast } from 'sonner';
+
+function UserDetails() {
+  const { user, isLoaded, isSignedIn } = useUser();
+
+  if (!isLoaded) return <div className="animate-pulse h-32 bg-gray-100 rounded-lg"></div>;
+
+  if (!isSignedIn) {
+    return (
+      <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Account</h2>
+        <p className="text-gray-600 mb-4">Sign in to checkout faster and track your orders.</p>
+        <Link href="/sign-in" className="text-blue-600 font-medium hover:underline">
+          Sign In or Create Account
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+      <div className="flex items-center gap-3 mb-4">
+        <User className="w-6 h-6 text-blue-600" />
+        <h2 className="text-xl font-bold text-gray-900">Account Details</h2>
+      </div>
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm text-gray-500">Name</p>
+          <p className="font-medium text-gray-900">{user.fullName}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Email</p>
+          <p className="font-medium text-gray-900">{user.primaryEmailAddress?.emailAddress}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCartStore();
@@ -25,7 +63,7 @@ export default function CartPage() {
   };
 
   const subtotal = getTotal();
-  const tax = subtotal * 0.05; // 5% tax
+  const tax = subtotal * 0.05;
   const total = subtotal + tax;
 
   if (items.length === 0) {
@@ -146,8 +184,9 @@ export default function CartPage() {
             ))}
           </div>
 
-          {/* Cart Summary */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
+            {/* User Details */}
+            <UserDetails />
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 sticky top-24">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
 
@@ -175,15 +214,12 @@ export default function CartPage() {
                 Proceed to Checkout
               </Link>
 
-              <button
-                onClick={() => {
-                  clearCart();
-                  toast.success('Cart cleared');
-                }}
-                className="w-full text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors text-sm font-medium"
+              <Link
+                href="/"
+                className="w-full text-center block font-medium text-blue-600 hover:text-blue-700 transition-colors"
               >
-                Clear Cart
-              </button>
+                Continue Shopping
+              </Link>
             </div>
           </div>
         </div>

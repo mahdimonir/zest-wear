@@ -2,6 +2,7 @@
 
 import { useCartStore } from '@/lib/cart-store';
 import { ShoppingCart } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -24,6 +25,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
     product.color.length > 0 ? product.color[0] : undefined
   );
   
+  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
 
   const handleAddToCart = () => {
@@ -46,6 +48,7 @@ export default function AddToCartButton({ product }: { product: Product }) {
     });
 
     toast.success(`${product.name} added to cart!`);
+    router.push('/cart');
   };
 
   return (

@@ -2,7 +2,7 @@
 
 import { useCartStore } from '@/lib/cart-store';
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingBag, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Navbar() {
@@ -46,7 +46,20 @@ export default function Navbar() {
               </SignUpButton>
             </SignedOut>
             <SignedIn>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton afterSignOutUrl="/">
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="My Orders"
+                    labelIcon={<ShoppingBag className="w-4 h-4" />}
+                    href="/my-orders"
+                  />
+                  <UserButton.Link
+                    label="Dashboard"
+                    labelIcon={<ShoppingCart className="w-4 h-4" />}
+                    href="/admin"
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
             </SignedIn>
           </div>
         </div>
