@@ -1,5 +1,4 @@
 import nodemailer from "nodemailer";
-import { toast } from "sonner";
 
 interface EmailOptions {
   to: string | string[];
@@ -28,13 +27,13 @@ class EmailService {
         ...(SMTP_SERVICE ? { service: SMTP_SERVICE } : {}),
       });
     } else {
-      toast.error("Email service not configured: SMTP credentials missing");
+      console.warn("Email service not configured: SMTP credentials missing");
     }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.transporter) {
-      toast.error("Email service not configured, skipping email send");
+      console.warn("Email service not configured, skipping email send");
       return false;
     }
 
@@ -49,10 +48,10 @@ class EmailService {
       };
 
       const info = await this.transporter.sendMail(mailOptions);
-      toast.success(`Email sent successfully: ${info.messageId}`);
+      console.log(`Email sent successfully: ${info.messageId}`);
       return true;
     } catch (error) {
-      toast.error(`Failed to send email: ${error}`);
+      console.error(`Failed to send email: ${error}`);
       return false;
     }
   }
