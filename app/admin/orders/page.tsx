@@ -1,28 +1,81 @@
+import TableSearch from '@/components/admin/TableSearch';
+import Pagination from '@/components/ui/Pagination';
 import { prisma } from '@/lib/prisma';
+import { getStatusColor } from '@/lib/utils';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { Eye } from 'lucide-react';
 import Link from 'next/link';
 
-export default async function AdminOrdersPage() {
-  const orders = await prisma.order.findMany({
-    orderBy: { createdAt: 'desc' },
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
+interface Props {
+  searchParams?: Promise<{
+    query?: string;
+    page?: string;
+    status?: string;
+    search?: string;
+  }>;
+}
+
+export default async function AdminOrdersPage(props: Props) {
+  const searchParams = await props.searchParams;
+  const currentPage = Number(searchParams?.page) || 1;
+  const query = searchParams?.search || '';
+  const status = searchParams?.status as OrderStatus | undefined;
+  const pageSize = 10;
+  
+  const where: Prisma.OrderWhereInput = {
+    AND: [
+      status ? { status } : {},
+      query
+        ? {
+            OR: [
+              { id: { contains: query, mode: 'insensitive' } },
+              { user: { name: { contains: query, mode: 'insensitive' } } },
+            ],
+          }
+        : {},
+    ],
+  };
+
+  const [orders, totalItems] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (currentPage - 1) * pageSize,
+      take: pageSize,
+      include: {
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: { items: true },
         },
       },
-      _count: {
-        select: { items: true },
-      },
-    },
-  });
+    }),
+    prisma.order.count({ where }),
+  ]);
 
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Orders</h1>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <TableSearch
+        placeholder="Search orders..."
+        filters={[
+          {
+            key: 'status',
+            label: 'Status',
+            options: Object.values(OrderStatus).map((s) => ({
+              label: s,
+              value: s,
+            })),
+          },
+        ]}
+      />
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 text-left text-sm font-medium text-gray-500">
@@ -54,12 +107,7 @@ export default async function AdminOrdersPage() {
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium
-                      ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                        order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                        order.status === 'SHIPPED' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
+                    <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </td>
@@ -91,6 +139,12 @@ export default async function AdminOrdersPage() {
           </table>
         </div>
       </div>
+      
+      <Pagination
+        totalItems={totalItems}
+        pageSize={pageSize}
+        currentPage={currentPage}
+      />
     </div>
   );
 }

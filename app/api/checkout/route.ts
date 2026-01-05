@@ -1,3 +1,4 @@
+import { emailService } from '@/lib/email.service';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -60,6 +61,22 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+    }
+
+    try {
+      await emailService.sendOrderCompletedEmail(
+        user.email,
+        user.name || shippingAddress.fullName || 'Valued Customer',
+        {
+          orderId: order.id,
+          totalPrice: order.total,
+          status: order.status,
+          itemsCount: order.items.length,
+        }
+      );
+    } catch (emailError) {
+      console.error('Failed to send email:', emailError);
+      // Continue execution, don't fail the order
     }
 
     return NextResponse.json({ orderId: order.id }, { status: 201 });

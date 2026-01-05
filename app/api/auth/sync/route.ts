@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { currentUser } from '@clerk/nextjs/server';
+import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -18,11 +18,10 @@ export async function GET() {
     }
 
     // Sync user to database
-    await prisma.user.upsert({
+    const dbUser = await prisma.user.upsert({
       where: { clerkId: user.id },
       update: {
-        email,
-        name,
+        email, // Keep email in sync
       },
       create: {
         clerkId: user.id,
@@ -30,9 +29,21 @@ export async function GET() {
         name,
         role: 'USER',
       },
+      select: { role: true },
     });
 
-    return NextResponse.json({ message: 'User synced successfully' });
+    const currentRole = user.publicMetadata.role as string | undefined;
+    
+    if (currentRole !== dbUser.role) {
+      const client = await clerkClient();
+      await client.users.updateUserMetadata(user.id, {
+        publicMetadata: {
+          role: dbUser.role,
+        },
+      });
+    }
+
+    return NextResponse.json({ message: 'User synced successfully', role: dbUser.role });
   } catch (error) {
     console.error('User sync error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

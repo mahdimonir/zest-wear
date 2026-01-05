@@ -1,7 +1,6 @@
 'use client';
 
 import { Loader2, Upload, X } from 'lucide-react';
-import { CldUploadWidget } from 'next-cloudinary';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -39,6 +38,9 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     hasVariants: initialData?.hasVariants || false,
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>(initialData?.imageUrl || '');
+
   const [availableSizes] = useState(['S', 'M', 'L', 'XL', 'XXL']);
   const [availableColors] = useState(['Red', 'Blue', 'Green', 'Black', 'White', 'Yellow']);
 
@@ -58,18 +60,19 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     }));
   };
 
-  const handleUploadSuccess = (result: any) => {
-    const imageUrl = result?.info?.secure_url;
-    if (imageUrl) {
-      setFormData((prev) => ({
-        ...prev,
-        imageUrl,
-      }));
-      toast.success('Image uploaded successfully');
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      // Update imageUrl just to stop validation error temporarily, though we use file for upload
+      setFormData(prev => ({ ...prev, imageUrl: 'uploading' })); 
     }
   };
 
   const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview('');
     setFormData((prev) => ({
       ...prev,
       imageUrl: '',
@@ -99,7 +102,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
     setIsSubmitting(true);
 
     try {
-      if (!formData.imageUrl) {
+      if (!imagePreview && !formData.imageUrl) {
         toast.error('Please upload a product image');
         setIsSubmitting(false);
         return;
@@ -111,12 +114,30 @@ export default function ProductForm({ initialData }: ProductFormProps) {
       
       const method = initialData?.id ? 'PATCH' : 'POST';
 
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('description', formData.description);
+      data.append('price', formData.price.toString());
+      data.append('quantity', formData.quantity.toString());
+      data.append('category', formData.category || '');
+      data.append('hasVariants', formData.hasVariants.toString());
+      
+      // Handle arrays
+      formData.size.forEach(s => data.append('size', s));
+      formData.color.forEach(c => data.append('color', c));
+
+      // Handle Image
+      if (imageFile) {
+        data.append('image', imageFile);
+      } else if (formData.imageUrl && formData.imageUrl !== 'uploading') {
+         // Keep existing URL if not changed
+         data.append('imageUrl', formData.imageUrl);
+      }
+
       const response = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: data,
+        // Content-Type is set automatically for FormData
       });
 
       if (!response.ok) {
@@ -213,34 +234,21 @@ export default function ProductForm({ initialData }: ProductFormProps) {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
             
-            {!formData.imageUrl ? (
-              <CldUploadWidget
-                signatureEndpoint="/api/sign-cloudinary"
-                onSuccess={handleUploadSuccess}
-                uploadPreset="zest-wear-unsigned" // Optional if using purely signed uploads with no preset needed, but keeping just in case
-                options={{
-                  maxFiles: 1,
-                  resourceType: 'image',
-                  clientAllowedFormats: ['image'],
-                }}
-              >
-                {({ open }) => {
-                  return (
-                    <button
-                      type="button"
-                      onClick={() => open()}
-                      className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-colors bg-gray-50 hover:bg-blue-50"
-                    >
-                      <Upload className="w-8 h-8 mb-2" />
-                      <span className="text-sm font-medium">Click to upload image</span>
-                    </button>
-                  );
-                }}
-              </CldUploadWidget>
+            {!imagePreview ? (
+              <div className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-colors bg-gray-50 hover:bg-blue-50 relative cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                />
+                <Upload className="w-8 h-8 mb-2" />
+                <span className="text-sm font-medium">Click to upload image</span>
+              </div>
             ) : (
               <div className="relative h-48 w-full bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group">
                 <Image
-                  src={formData.imageUrl}
+                  src={imagePreview}
                   alt="Preview"
                   fill
                   className="object-cover"
@@ -248,7 +256,7 @@ export default function ProductForm({ initialData }: ProductFormProps) {
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
                   title="Remove image"
                 >
                   <X className="w-4 h-4" />

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getStatusColor } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
@@ -69,13 +70,7 @@ export default async function MyOrderDetailsPage(props: {
         <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Order #{order.id.slice(-8)}</h1>
             <span
-                className={`px-4 py-2 rounded-full text-sm font-bold ${
-                order.status === 'DELIVERED'
-                    ? 'bg-green-100 text-green-800'
-                    : order.status === 'CANCELLED'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-bold border ${getStatusColor(order.status)}`}
             >
                 {order.status}
             </span>

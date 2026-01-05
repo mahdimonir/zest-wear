@@ -1,7 +1,7 @@
 'use client';
 
 import { useCartStore } from '@/lib/cart-store';
-import { useUser } from '@clerk/nextjs';
+import { SignInButton, useUser } from '@clerk/nextjs';
 import { Minus, Plus, ShoppingBag, Trash2, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -45,6 +45,7 @@ function UserDetails() {
 }
 
 export default function CartPage() {
+  const { isSignedIn } = useUser();
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCartStore();
 
   const handleRemove = (id: number, selectedSize?: string, selectedColor?: string) => {
@@ -89,9 +90,18 @@ export default function CartPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          Shopping Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Shopping Cart ({items.length} {items.length === 1 ? 'item' : 'items'})
+          </h1>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:border-blue-600 hover:text-blue-600 transition-all shadow-sm group"
+          >
+            <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            Add more Products
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -182,6 +192,8 @@ export default function CartPage() {
                 </div>
               </div>
             ))}
+            
+
           </div>
 
           <div className="lg:col-span-1 space-y-6">
@@ -207,19 +219,24 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link
-                href="/checkout"
-                className="btn-primary w-full text-center block mb-3"
-              >
-                Proceed to Checkout
-              </Link>
-
-              <Link
-                href="/"
-                className="btn-secondary w-full text-center block"
-              >
-                Continue Shopping
-              </Link>
+              <div className="space-y-3">
+                {isSignedIn ? (
+                  <Link
+                    href="/checkout"
+                    className="btn-primary w-full text-center block"
+                  >
+                    Proceed to Checkout
+                  </Link>
+                ) : (
+                  <div className="w-full">
+                    <SignInButton mode="modal" forceRedirectUrl="/checkout">
+                      <button className="btn-primary w-full text-center block">
+                        Proceed to Checkout
+                      </button>
+                    </SignInButton>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

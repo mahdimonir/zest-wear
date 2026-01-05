@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { getStatusColor } from '@/lib/utils';
 import { auth } from '@clerk/nextjs/server';
 import { ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
@@ -88,13 +89,7 @@ export default async function MyOrdersPage() {
                   <div>
                     <p className="text-sm text-gray-500 mb-1">Status</p>
                     <span
-                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                        order.status === 'DELIVERED'
-                          ? 'bg-green-100 text-green-800'
-                          : order.status === 'CANCELLED'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}
                     >
                       {order.status}
                     </span>

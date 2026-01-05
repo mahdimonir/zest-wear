@@ -1,3 +1,4 @@
+import { emailService } from '@/lib/email.service';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
 import { OrderStatus } from '@prisma/client';
@@ -75,7 +76,22 @@ export async function PATCH(
     const order = await prisma.order.update({
       where: { id: params.id },
       data: { status },
+      include: { user: true },
     });
+
+    try {
+          await emailService.sendOrderStatusUpdate(
+            user.email,
+            user.name || 'Valued Customer',
+            {
+              orderId: order.id,
+              status: order.status,
+            }
+          );
+        } catch (emailError) {
+          console.error('Failed to send email:', emailError);
+          // Continue execution, don't fail the order
+        }
 
     return NextResponse.json(order);
   } catch (error) {

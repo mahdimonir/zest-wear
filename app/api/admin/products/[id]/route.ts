@@ -1,7 +1,10 @@
-import cloudinary from '@/lib/cloudinary';
+import { deleteImageByUrl, uploadImage } from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@clerk/nextjs/server';
+import fs from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
+import os from 'os';
+import path from 'path';
 
 export async function GET(
   request: NextRequest,
@@ -42,26 +45,66 @@ export async function PATCH(
     }
 
     const productId = parseInt(params.id);
-    const body = await request.json();
-    const {
-      name,
-      description,
-      price,
-      quantity,
-      imageUrl,
-      category,
-      size,
-      color,
-      hasVariants,
-    } = body;
+    
+    // Check if product exists
+    const existingProduct = await prisma.product.findUnique({
+        where: { id: productId }
+    });
+    
+    if (!existingProduct) {
+        return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+    const price = parseFloat(formData.get('price') as string);
+    const quantity = parseInt(formData.get('quantity') as string);
+    const category = formData.get('category') as string;
+    const hasVariants = formData.get('hasVariants') === 'true';
+    const size = formData.getAll('size') as string[];
+    const color = formData.getAll('color') as string[];
+    const imageFile = formData.get('image') as File | null;
+    const imageUrlField = formData.get('imageUrl') as string | null;
+
+    let imageUrl = existingProduct.imageUrl;
+
+    if (imageFile) {
+        // New image uploaded
+        const arrayBuffer = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const tempDir = os.tmpdir();
+        const tempFilePath = path.join(tempDir, imageFile.name);
+        fs.writeFileSync(tempFilePath, buffer);
+
+        try {
+            const uploadResult = await uploadImage(tempFilePath, 'ZestWear/Products');
+            if (uploadResult?.secure_url) {
+                imageUrl = uploadResult.secure_url;
+                // Delete old image
+                if (existingProduct.imageUrl) {
+                    await deleteImageByUrl(existingProduct.imageUrl);
+                }
+            }
+        } catch (error) {
+            console.error('Cloudinary upload invalid:', error);
+            return NextResponse.json({ error: 'Image upload failed' }, { status: 500 });
+        }
+    } else if (imageUrlField === '') {
+        // Image explicitly removed
+        imageUrl = '';
+        if (existingProduct.imageUrl) {
+            await deleteImageByUrl(existingProduct.imageUrl);
+        }
+    }
 
     const product = await prisma.product.update({
       where: { id: productId },
       data: {
         name,
         description,
-        price: parseFloat(price),
-        quantity: parseInt(quantity),
+        price,
+        quantity,
         imageUrl,
         category,
         size,
@@ -71,37 +114,9 @@ export async function PATCH(
     });
 
     return NextResponse.json(product);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to update product:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-  }
-}
-
-function getPublicIdFromUrl(url: string) {
-  if (!url) return null;
-  // Cloudinary URL format: .../upload/v<version>/<folder>/<public_id>.<extension>
-  // Or: .../upload/<folder>/<public_id>.<extension>
-  // We need to extract <folder>/<public_id> or just <public_id>
-
-  try {
-    // Example: https://res.cloudinary.com/demo/image/upload/v1614012345/sample.jpg
-    const parts = url.split('/');
-    const filenameWithExt = parts[parts.length - 1];
-    const publicId = filenameWithExt.split('.')[0];
-    
-    // Check if it has a folder (simple assumption: if there are more parts after 'upload' and possibly version)
-    // A robust way uses regex on typical Cloudinary URLs
-    // Regex matches content after /upload/ and (optionally) v<version>/ up to the extension
-    const regex = /\/upload\/(?:v\d+\/)?(.+)\.[^.]+$/;
-    const match = url.match(regex);
-    if (match && match[1]) {
-      return match[1];
-    }
-    
-    return publicId; // Fallback
-  } catch (e) {
-    console.error('Error extracting public ID:', e);
-    return null;
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
 
@@ -124,17 +139,7 @@ export async function DELETE(
     });
 
     if (product?.imageUrl) {
-      const publicId = getPublicIdFromUrl(product.imageUrl);
-      if (publicId) {
-        try {
-          // Delete image from Cloudinary
-          await cloudinary.uploader.destroy(publicId);
-          console.log(`Deleted Cloudinary image: ${publicId}`);
-        } catch (cloudinaryError) {
-           console.error('Failed to delete image from Cloudinary:', cloudinaryError);
-           // Continue deleting product even if image delete fails
-        }
-      }
+        await deleteImageByUrl(product.imageUrl);
     }
 
     await prisma.product.delete({
