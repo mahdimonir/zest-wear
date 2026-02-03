@@ -1,17 +1,15 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
 const getPublicIdFromUrl = (fileUrl: string | undefined | null) => {
   if (!fileUrl) return null;
   try {
     const match = fileUrl.match(
-      /\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-zA-Z0-9]+)?$/
+      /\/upload\/(?:v\d+\/)?(.+?)(?:\.[a-zA-Z0-9]+)?$/,
     );
     if (!match || !match[1]) {
       console.error("Could not extract public ID from URL:", fileUrl);
@@ -24,10 +22,9 @@ const getPublicIdFromUrl = (fileUrl: string | undefined | null) => {
     return null;
   }
 };
-
 export const uploadImage = async (
   localFilePath: string,
-  folder = "ZestWear"
+  folder = "ZestWear",
 ) => {
   if (!localFilePath) return null;
   try {
@@ -42,19 +39,16 @@ export const uploadImage = async (
     try {
       if (localFilePath && fs.existsSync(localFilePath))
         fs.unlinkSync(localFilePath);
-    } catch (e) {
-      // ignore cleanup errors
-    }
+    } catch (e) {}
   }
 };
-
 export const deleteImageByUrl = async (fileUrl: string | undefined | null) => {
   if (!fileUrl) return { success: true, message: "No file" };
   const publicId = getPublicIdFromUrl(fileUrl);
   if (!publicId) {
     console.warn(
       "Could not extract public ID from URL, skipping deletion:",
-      fileUrl
+      fileUrl,
     );
     return { success: true, message: "No valid public id" };
   }
@@ -73,5 +67,4 @@ export const deleteImageByUrl = async (fileUrl: string | undefined | null) => {
     };
   }
 };
-
 export default cloudinary;

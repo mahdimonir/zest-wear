@@ -1,44 +1,38 @@
 import nodemailer from "nodemailer";
-
 interface EmailOptions {
   to: string | string[];
   subject: string;
   html: string;
   text?: string;
 }
-
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
-
   constructor() {
-    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SERVICE } = process.env;
-    // Initialize transporter if SMTP config is available
+    const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_SERVICE } =
+      process.env;
     if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-      const port = parseInt(SMTP_PORT || '587');
+      const port = parseInt(SMTP_PORT || "587");
       this.transporter = nodemailer.createTransport({
         host: SMTP_HOST,
         port: port,
-        secure: port === 465, // true for 465, false for other ports
+        secure: port === 465,
         auth: {
           user: SMTP_USER,
           pass: SMTP_PASS,
         },
-        // Only add service if explicitly provided
         ...(SMTP_SERVICE ? { service: SMTP_SERVICE } : {}),
       });
     } else {
       console.warn("Email service not configured: SMTP credentials missing");
     }
   }
-
   async sendEmail(options: EmailOptions): Promise<boolean> {
     if (!this.transporter) {
       console.warn("Email service not configured, skipping email send");
       return false;
     }
-
     try {
-      const from = process.env.SMTP_USER || 'noreply@zestwear.com';
+      const from = process.env.SMTP_USER || "noreply@zestwear.com";
       const mailOptions = {
         from: `"Zest Wear" <${from}>`,
         to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
@@ -46,7 +40,6 @@ class EmailService {
         text: options.text,
         html: options.html,
       };
-
       const info = await this.transporter.sendMail(mailOptions);
       console.log(`Email sent successfully: ${info.messageId}`);
       return true;
@@ -55,9 +48,6 @@ class EmailService {
       return false;
     }
   }
-
-
-  // Booking confirmation email (Adapted for Zest Wear - Order Confirmation)
   async sendOrderCompletedEmail(
     userEmail: string,
     userName: string,
@@ -66,7 +56,7 @@ class EmailService {
       totalPrice: number;
       status: string;
       itemsCount: number;
-    }
+    },
   ): Promise<boolean> {
     const html = `
       <!DOCTYPE html>
@@ -93,22 +83,19 @@ class EmailService {
         </body>
       </html>
     `;
-
     return this.sendEmail({
       to: userEmail,
       subject: "Order Completed successfully - Zest Wear",
       html,
     });
   }
-
-  // Status update notification
   async sendOrderStatusUpdate(
     userEmail: string,
     userName: string,
     orderDetails: {
       orderId: string;
       status: string;
-    }
+    },
   ): Promise<boolean> {
     const statusMessages: Record<string, string> = {
       PROCESSING: "Your order is being processed.",
@@ -116,7 +103,6 @@ class EmailService {
       DELIVERED: "Your order has been delivered using our fast delivery.",
       CANCELLED: "Your order has been cancelled.",
     };
-
     const html = `
       <!DOCTYPE html>
       <html>
@@ -142,13 +128,43 @@ class EmailService {
         </body>
       </html>
     `;
-
     return this.sendEmail({
       to: userEmail,
       subject: `Order Status Update - ${orderDetails.status} - Zest Wear`,
       html,
     });
   }
+  async sendPasswordResetEmail(
+    userEmail: string,
+    resetLink: string,
+  ): Promise<boolean> {
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Reset Your Password</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2c3e50;">Reset Your Password</h2>
+            <p>We received a request to reset your password for your Zest Wear account.</p>
+            <p>Click the button below to reset it:</p>
+            <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background-color: #0ea5e9; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin: 20px 0;">Reset Password</a>
+            <p>Or copy and paste this link into your browser:</p>
+            <p>${resetLink}</p>
+            <p>If you didn't request this, you can safely ignore this email.</p>
+            <p>This link will expire in 1 hour.</p>
+            <p>Best regards,<br>Zest Wear Team</p>
+          </div>
+        </body>
+      </html>
+    `;
+    return this.sendEmail({
+      to: userEmail,
+      subject: "Reset Your Password - Zest Wear",
+      html,
+    });
+  }
 }
-
 export const emailService = new EmailService();
